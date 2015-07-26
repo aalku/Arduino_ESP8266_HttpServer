@@ -271,6 +271,9 @@ int readLine() {
 void netsend(int n, char* str) {
   boolean ok = false;
   while (!ok) {
+    while(waitData(100)) {
+      readLine();
+    }
     espStream->print("AT+CIPSEND=");
     DEBUG_SERIAL.print("AT+CIPSEND=");
     espStream->print(n);
