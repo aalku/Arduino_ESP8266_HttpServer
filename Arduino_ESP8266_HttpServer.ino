@@ -2,12 +2,12 @@
 #include <Stream.h>
 
 /*
- * Un buffer de entrada y otro por canal (uno en principio) para líneas de un mismo stream que lleguen partidas.
- * En el de entrada siempre se leen líneas completas.
- * Si una línea de un stream queda a medias se guarda asociada al stream.
- * Si un buffer se desborda se descarta el resto de la línea.
+ * One input buffer and another per channel for the incoming lines thar arrive split.
+ * Always try to read complete lines
+ * If a buffer overflows the rest of the line is discarded.
+ * Http processing is line by line. Text is not accumulated but you can save any info and send answer once request is complete after blank line.
  * 
- * el procesamiento de http es por líneas, y se acumula el estado como se quiera. Una vez acaba (línea vacía) se procesa y se emite respuesta.
+ * Eveything is this way to save memory.
  */
 
 #define IN_BUFFER_SIZE 128
