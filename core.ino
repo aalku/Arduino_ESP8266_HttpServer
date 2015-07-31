@@ -1,15 +1,10 @@
-#define IN_BUFFER_SIZE 128
-#define CHANNELS 4
+#include "core.h"
 
-#define ESP_SERIAL Serial1
-//#define ESP_SERIAL softSerial
-//SoftwareSerial softSerial(2, 3);
-#define DEBUG_SERIAL Serial
 
-char inBuffer[IN_BUFFER_SIZE+1];
+char inBuffer[BUFFER_SIZE+1];
 int inBufferLen = 0;
 
-char inDataBuffer[CHANNELS][IN_BUFFER_SIZE+1];
+char inDataBuffer[CHANNELS][BUFFER_SIZE+1];
 int inDataBufferLen[CHANNELS];
 boolean httpRequestRead[CHANNELS];
 
@@ -48,7 +43,7 @@ int readLineLowLevel() {
     char c = espStream->read();
     //DEBUG_SERIAL.print(c);
     i++;
-    if (inBufferLen < IN_BUFFER_SIZE) {
+    if (inBufferLen < BUFFER_SIZE) {
       inBuffer[inBufferLen++] = c;
     }
     if (c == '\n' && prev == '\r') {
@@ -189,7 +184,7 @@ void processIPD() {
   int i = j;
   int t = 0;
   while (t < l) {
-    if (i >= IN_BUFFER_SIZE) {
+    if (i >= BUFFER_SIZE) {
         DEBUG_SERIAL.println();
         if (inDataBufferLen[n] > 0) {
           processIPDLine(n);
@@ -218,7 +213,7 @@ void processIPD() {
     } else {
       char c = inBuffer[i];
       DEBUG_SERIAL.print(c);
-      if (dp < IN_BUFFER_SIZE) {
+      if (dp < BUFFER_SIZE) {
         inDataBuffer[n][dp]=c;
         inDataBuffer[n][dp+1]=0;
         dp++;
@@ -270,6 +265,7 @@ void netsend(int n, char* str) {
     while(waitData(100)) {
       readLine();
     }
+    delay(100);
     espStream->print("AT+CIPSEND=");
     DEBUG_SERIAL.print("AT+CIPSEND=");
     espStream->print(n);
