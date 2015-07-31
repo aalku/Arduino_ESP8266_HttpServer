@@ -18,7 +18,11 @@ void setup() {
   //softSerial.begin(9600);
   ESP_SERIAL.begin(9600);
   DEBUG_SERIAL.begin(9600);
-  delay(5000);
+  espStream->print("AT\r\n");
+  delay(500);
+  espStream->print("AT+RST\r\n");
+  delay(3000);
+  skip();  
   
   inBuffer[0]=0; // USELESS
   for (int i=0; i < CHANNELS; i++) {
@@ -178,14 +182,14 @@ void processIPD() {
     DEBUG_SERIAL.println(inBuffer);
     return;
   }
-  DEBUG_SERIAL.print("+IPD LL: {{");
+  //DEBUG_SERIAL.print("+IPD LL: {{");
   int dp = inDataBufferLen[n];
   int pc = -1;
   int i = j;
   int t = 0;
   while (t < l) {
     if (i >= BUFFER_SIZE) {
-        DEBUG_SERIAL.println();
+        //DEBUG_SERIAL.println();
         if (inDataBufferLen[n] > 0) {
           processIPDLine(n);
         }
@@ -212,7 +216,7 @@ void processIPD() {
       readLineLowLevel();
     } else {
       char c = inBuffer[i];
-      DEBUG_SERIAL.print(c);
+      //DEBUG_SERIAL.print(c);
       if (dp < BUFFER_SIZE) {
         inDataBuffer[n][dp]=c;
         inDataBuffer[n][dp+1]=0;
@@ -235,7 +239,7 @@ void processIPD() {
       t++;
     }
   }
-  DEBUG_SERIAL.println("}}");
+  //DEBUG_SERIAL.println("}}");
 }
 
 int readLine() {
@@ -262,10 +266,10 @@ int readLine() {
 void netsend(int n, char* str) {
   boolean ok = false;
   while (!ok) {
-    while(waitData(100)) {
+    while(waitData(50)) {
       readLine();
     }
-    delay(100);
+    delay(50);
     espStream->print("AT+CIPSEND=");
     DEBUG_SERIAL.print("AT+CIPSEND=");
     espStream->print(n);
