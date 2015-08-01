@@ -308,17 +308,49 @@ void netsend(int n, char* str) {
     waitData(1000);
     readLineLowLevel();
     ok = !(inBufferLen > 4 && memcmp(inBuffer, "busy", 4) == 0);
+    if (ok) {
+      waitData(200);
+      readLineLowLevel();
+      waitData(200);
+      if (true) {
+        ok = sendPrep();
+      } else {
+        skip();
+      }
+    }
   }
-  waitData(200);
-  readLineLowLevel();
-  waitData(200);
-  skip();
   espStream->print(str);
   DEBUG_SERIAL.println(str);
   waitData(1000);
   readLineLowLevel();
   waitData(100);
   readLine();
+}
+
+boolean sendPrep() {
+  DEBUG_SERIAL.print("SendPrep: ");
+  inBufferLen = 0;
+  if (!espStream->available()) {
+    inBuffer[inBufferLen]=0;
+    return false;
+  }
+  unread=false;
+  for (int i = 0; i < 2; i++) {
+    char c = espStream->read();
+    DEBUG_SERIAL.print(c);
+    if (inBufferLen < BUFFER_SIZE) {
+      inBuffer[inBufferLen++] = c;
+    }
+    inBuffer[inBufferLen] = 0;
+  }
+  if (inBuffer[inBufferLen-2] == '>' /* && inBuffer[inBufferLen-1] == ' '*/) {
+    DEBUG_SERIAL.println("SendPrep OK");
+    return true;
+  } else {
+    DEBUG_SERIAL.println("UNREAD");
+    unread = true;
+    return false;
+  }
 }
 
 void loop() {
