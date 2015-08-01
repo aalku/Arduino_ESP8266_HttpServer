@@ -8,11 +8,15 @@ char inDataBuffer[CHANNELS][BUFFER_SIZE+1];
 int inDataBufferLen[CHANNELS];
 boolean httpRequestRead[CHANNELS];
 
+boolean open[CHANNELS];
+
 unsigned char state = 0;
 
 Stream* espStream = &ESP_SERIAL;
 
 boolean debugPrevNoData = false;
+
+boolean unread = false;
 
 void setup() {
   //softSerial.begin(9600);
@@ -27,39 +31,47 @@ void setup() {
   inBuffer[0]=0; // USELESS
   for (int i=0; i < CHANNELS; i++) {
     inDataBufferLen[i]=0;
-    inDataBuffer[i][0]=0; // USELESS
+    inDataBuffer[i][0]=0;
+    open[i]=false;
   }
 }
 
 int readLineLowLevel() {
-  inBufferLen = 0;
-  if (!espStream->available()) {
-    inBufferLen=0;
-    inBuffer[0]=0;
-    return 0;
-  }
-  // Read to in buffer
-  int prev = -1;
-  int i = 0;
-  //DEBUG_SERIAL.print("LL READ: {");
-  while (true) {
-    while(!espStream->available());
-    char c = espStream->read();
-    //DEBUG_SERIAL.print(c);
-    i++;
-    if (inBufferLen < BUFFER_SIZE) {
-      inBuffer[inBufferLen++] = c;
+  if (!unread) {
+    inBufferLen = 0;
+    if (!espStream->available()) {
+      inBuffer[inBufferLen]=0;
+      return 0;
     }
-    if (c == '\n' && prev == '\r') {
+  }
+  unread=false;
+  //DEBUG_SERIAL.print("LL READ: {");
+  // Read to in buffer
+  int i = 0;
+  while (true) {
+    if (inBufferLen >= 2 && inBuffer[inBufferLen-2] == '\r' && inBuffer[inBufferLen-1] == '\n') {
       break;
     }
-    prev = c;
+    while(!espStream->available());
+    char c = espStream->read();
+    i++;
+    //DEBUG_SERIAL.print(c);
+    //DEBUG_SERIAL.print(c, HEX);
+    if (inBufferLen < BUFFER_SIZE) {
+      inBuffer[inBufferLen++] = c;
+    } else {
+      if (c == '\r') {
+        inBufferLen = BUFFER_SIZE - 2;
+        inBuffer[inBufferLen++] = c;
+      }
+    }
   }
   //DEBUG_SERIAL.println("}");
   inBuffer[inBufferLen] = 0;
-  //DEBUG_SERIAL.print("RECV: {");
-  //DEBUG_SERIAL.print(inBuffer);
-  //DEBUG_SERIAL.println("}");
+  DEBUG_SERIAL.print("RECV: {");
+  DEBUG_SERIAL.print(inBuffer);
+  DEBUG_SERIAL.println("}");
+  return i;
 }
 
 boolean ok = false;
@@ -80,7 +92,7 @@ boolean waitData(long time) {
     delay(5);
   }
   boolean data = espStream->available();
-  DEBUG_SERIAL.print(data?"WAIT -> DATA\r\n":debugPrevNoData?"":"WAIT -> NO DATA\r\n");
+  //DEBUG_SERIAL.print(data?"WAIT -> DATA\r\n":debugPrevNoData?"":"WAIT -> NO DATA\r\n");
   debugPrevNoData = !data;
   return data;
 }
@@ -110,7 +122,7 @@ boolean okCmd(char* cmd) {
   readLine();
   readLine();
   boolean ok = (inBufferLen == 4 && memcmp(inBuffer, "OK\r\n", 4) == 0);
-  DEBUG_SERIAL.println(ok?"OK":"NOT OK");
+  //DEBUG_SERIAL.println(ok?"OK":"NOT OK");
   return ok;
 }
 
@@ -120,6 +132,7 @@ void processConnect() {
   inDataBufferLen[n]=0;
   DEBUG_SERIAL.print("Connected ");
   DEBUG_SERIAL.println(n);
+  open[n]=true;
   httpRequestRead[n] = false;
   userConnect(n);
 }
@@ -128,6 +141,7 @@ void processClosed() {
   int n = inBuffer[0] - '0';
   DEBUG_SERIAL.print("Closed ");
   DEBUG_SERIAL.println(n);
+  open[n]=false;
   userClosed(n);
 }
 
@@ -136,6 +150,12 @@ void processIPDLine(int n) {
    * Do not respond unless inDataBuffer[n] equals "\r\n" (empty line)
    */
   DEBUG_SERIAL.print("+IPD LINE: ");
+  DEBUG_SERIAL.print(n);
+  DEBUG_SERIAL.print(" : ");
+  if (!open[n]) {
+    DEBUG_SERIAL.println("ERROR. NOT CONNECTED");
+    return;
+  }
   DEBUG_SERIAL.println(inDataBuffer[n]);
   if (strcmp(inDataBuffer[n], "\r\n") != 0) {
     if (httpRequestRead[n] == false) {
@@ -154,7 +174,7 @@ void processIPDLine(int n) {
   }
 }
 
-void processIPD() {
+void processIPD(int chars) {
   /*
    * FIXME: There is something broken here. When a line is too long it should crop it and continue but it does not continue correctly.
    */
@@ -182,24 +202,15 @@ void processIPD() {
     DEBUG_SERIAL.println(inBuffer);
     return;
   }
-  //DEBUG_SERIAL.print("+IPD LL: {{");
+  DEBUG_SERIAL.print("+IPD LL: {{");
   int dp = inDataBufferLen[n];
   int pc = -1;
   int i = j;
   int t = 0;
+  if (chars > BUFFER_SIZE) {
+    t += chars - BUFFER_SIZE;
+  }
   while (t < l) {
-    if (i >= BUFFER_SIZE) {
-        //DEBUG_SERIAL.println();
-        if (inDataBufferLen[n] > 0) {
-          processIPDLine(n);
-        }
-        inDataBuffer[n][0]=0;
-        inDataBufferLen[n]=0;
-        readLineLowLevel();
-        dp = 0;
-        pc = -1;
-        i = -1;
-    }
     if (i > inBufferLen) { //i < IN_BUFFER_SIZE && 
       DEBUG_SERIAL.print("+IPD ERROR: i (");
       DEBUG_SERIAL.print(i);
@@ -213,23 +224,29 @@ void processIPD() {
       return;
     }
     if (inBufferLen == 0) {
-      readLineLowLevel();
+      chars = readLineLowLevel();
+      if (chars > BUFFER_SIZE) {
+        t += chars - BUFFER_SIZE;
+      }
     } else {
       char c = inBuffer[i];
-      //DEBUG_SERIAL.print(c);
+      DEBUG_SERIAL.print(c);
       if (dp < BUFFER_SIZE) {
         inDataBuffer[n][dp]=c;
         inDataBuffer[n][dp+1]=0;
         dp++;
+        inDataBufferLen[n]=dp;
       }
-      inDataBufferLen[n]=dp;
       if (c == '\n' && pc == '\r') {
         if (inDataBufferLen[n] > 0) {
           processIPDLine(n);
         }
         inDataBuffer[n][0]=0;
         inDataBufferLen[n]=0;
-        readLineLowLevel();
+        chars = readLineLowLevel();
+        if (chars > BUFFER_SIZE) {
+          t += chars - BUFFER_SIZE;
+        }
         dp = 0;
         pc = -1;
         i = -1;
@@ -239,7 +256,7 @@ void processIPD() {
       t++;
     }
   }
-  //DEBUG_SERIAL.println("}}");
+  DEBUG_SERIAL.println("}}");
 }
 
 int readLine() {
@@ -248,7 +265,7 @@ int readLine() {
   while (!ok) {
     n = readLineLowLevel();
     if (strstr(inBuffer, "+IPD,") == inBuffer) {
-      processIPD();
+      processIPD(n);
     } else if (strstr(inBuffer, ",CONNECT") == &inBuffer[1]) {
       processConnect();
     } else if (strstr(inBuffer, ",CLOSED") == &inBuffer[1]) {
@@ -264,14 +281,14 @@ int readLine() {
 }
 
 void netsend_P(int n, PGM_P str) {
-  //DEBUG_SERIAL.println("NSP");
+  DEBUG_SERIAL.println("NSP");
   char buff[BUFFER_SIZE+1];
   strcpy_P(buff, str);
   netsend(n, buff);
 }
 
 void netsend(int n, char* str) {
-  //DEBUG_SERIAL.println("NSLL");
+  DEBUG_SERIAL.println("NSLL");
   boolean ok = false;
   while (!ok) {
     while(waitData(50)) {
