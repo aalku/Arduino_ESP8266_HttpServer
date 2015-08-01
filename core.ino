@@ -6,6 +6,7 @@ int inBufferLen = 0;
 
 char inDataBuffer[CHANNELS][BUFFER_SIZE+1];
 int inDataBufferLen[CHANNELS];
+
 boolean httpRequestRead[CHANNELS];
 
 boolean open[CHANNELS];
@@ -68,9 +69,9 @@ int readLineLowLevel() {
   }
   //DEBUG_SERIAL.println("}");
   inBuffer[inBufferLen] = 0;
-  DEBUG_SERIAL.print("RECV: {");
-  DEBUG_SERIAL.print(inBuffer);
-  DEBUG_SERIAL.println("}");
+  //DEBUG_SERIAL.print("RECV: {");
+  //DEBUG_SERIAL.print(inBuffer);
+  //DEBUG_SERIAL.println("}");
   return i;
 }
 
@@ -369,5 +370,24 @@ void loop() {
     if (readLine() > 0) {
     }
   }
+}
+
+boolean commandWaitCallback(char* command, long timeoutInitial, long timeoutAfter, LineCallback callback, void* context) {
+  while (waitData(100)) {
+    readLine();
+  }
+  send(command);
+  waitData(timeoutInitial);
+  while(true) {
+    if (waitData(timeoutAfter)) {
+      readLine();
+      DEBUG_SERIAL.print("COMMAND RESPONSE: ");
+      DEBUG_SERIAL.println(inBuffer);
+      callback(inBuffer, context);
+    } else {
+      break;
+    }
+  }
+  DEBUG_SERIAL.println("COMMAND END");
 }
 

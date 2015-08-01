@@ -9,3 +9,4 @@
 //SoftwareSerial softSerial(2, 3);
 #define DEBUG_SERIAL Serial
 
+typedef void (*LineCallback)(char* line, void* context);
