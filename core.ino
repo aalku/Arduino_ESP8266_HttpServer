@@ -263,7 +263,15 @@ int readLine() {
   return n;
 }
 
+void netsend_P(int n, PGM_P str) {
+  //DEBUG_SERIAL.println("NSP");
+  char buff[BUFFER_SIZE+1];
+  strcpy_P(buff, str);
+  netsend(n, buff);
+}
+
 void netsend(int n, char* str) {
+  //DEBUG_SERIAL.println("NSLL");
   boolean ok = false;
   while (!ok) {
     while(waitData(50)) {

@@ -1,4 +1,4 @@
-#define BUFFER_SIZE 128
+#define BUFFER_SIZE 96
 #define CHANNELS 4
 
 //#include <SoftwareSerial.h>

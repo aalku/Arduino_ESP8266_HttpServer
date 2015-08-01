@@ -3,10 +3,13 @@
 int req[CHANNELS];
 char buff[BUFFER_SIZE+1];
 
-const char PROGMEM headers[BUFFER_SIZE] = "Content-Type: text/html\r\n\Cache-Control: no-cache, no-store, must-revalidate\r\nPragma: no-cache\r\nExpires: -1\r\n\r\n";
-//const char PROGMEM HTML_PATTERN[BUFFER_SIZE] = "<html><head><title>%s</title>\r\n</head><body>\r\n<p>%s</p>\r\n</body></html>\r\n";
-const char PROGMEM HTML_404[BUFFER_SIZE] = "<html><head><title>ERROR 404: NOT FOUND!!</title>\r\n</head><body>\r\n<h1>ERROR 404: NOT FOUND!!</h1>\r\n</body></html>\r\n";
-const char PROGMEM HTML_INDEX[BUFFER_SIZE] = "<html><head><title>Arduino - Hello world</title>\r\n</head><body>\r\n<p>Hello world!! This is arduino!!</p>\r\n</body></html>\r\n";
+const char PROGMEM headers_A[BUFFER_SIZE] = "Content-Type: text/html\r\nCache-Control: no-cache, no-store, must-revalidate\r\n";
+const char PROGMEM headers_B[BUFFER_SIZE] = "Pragma: no-cache\r\nExpires: -1\r\n\r\n";
+const char PROGMEM HTML_PART_A[BUFFER_SIZE] = "<html><head><title>";
+const char PROGMEM HTML_PART_B[BUFFER_SIZE] = "</title>\r\n</head><body>\r\n";
+const char PROGMEM HTML_PART_C[BUFFER_SIZE] = "\r\n</body></html>\r\n";
+//const char PROGMEM HTML_404[BUFFER_SIZE] = "<html><head><title>ERROR 404: NOT FOUND!!</title>\r\n</head><body>\r\n<h1>ERROR 404: NOT FOUND!!</h1>\r\n</body></html>\r\n";
+//const char PROGMEM HTML_INDEX[BUFFER_SIZE] = "<html><head><title>Arduino - Hello world</title>\r\n</head><body>\r\n<p>Hello world!! This is arduino!!</p>\r\n</body></html>\r\n";
 const char PROGMEM STATUS_404[] = "HTTP/1.0 404 Not Found\r\n";
 const char PROGMEM STATUS_200[] = "HTTP/1.0 200 OK\r\n";
 
@@ -76,21 +79,28 @@ void userHttpResponse(int n) {
   // You can talk to the ESP8266 and send a response here.
   if (req[n] == 1) {
     //boolean ok = okCmd("AT+CWLAP\r\n");
-    strcpy_P(buff, STATUS_200);
-    netsend(n, buff);
-    strcpy_P(buff, headers);
-    netsend(n, buff);
-    strcpy_P(buff, HTML_INDEX);
-    netsend(n, buff);
+    netsend_P(n, STATUS_200);
+    netsend_P(n, headers_A);
+    netsend_P(n, headers_B);
+    //netsend_P(n, HTML_INDEX);
+    netsend_P(n, HTML_PART_A);
+    netsend(n, "title");
+    netsend_P(n, HTML_PART_B);
+    netsend(n, "body");
+    netsend_P(n, HTML_PART_C);
     //snprintf(buff, sizeof(buff), "<p>Req=%d</p>\r\n", req[n]);
     //netsend(n, buff);
   } else {
-    strcpy_P(buff, STATUS_404);
-    netsend(n, buff);
-    strcpy_P(buff, headers);
-    netsend(n, buff);
-    strcpy_P(buff, HTML_404);
-    netsend(n, buff);
+    netsend_P(n, STATUS_404);
+    netsend_P(n, headers_A);
+    netsend_P(n, headers_B);
+    //netsend_P(n, HTML_404);
+    netsend_P(n, HTML_PART_A);
+    netsend(n, "ERROR 404: NOT FOUND!!");
+    netsend_P(n, HTML_PART_B);
+    netsend(n, "ERROR 404: NOT FOUND!!");
+    netsend_P(n, HTML_PART_C);
+
   }
 }
 
