@@ -283,16 +283,18 @@ int readLine() {
   return n;
 }
 
-void netsend_P(int n, PGM_P str) {
+boolean netsend_P(int n, PGM_P str) {
   //DEBUG_SERIAL.println("NSP");
   char buff[BUFFER_SIZE+1];
   strncpy_P(buff, str, BUFFER_SIZE);
   buff[BUFFER_SIZE]=0;
-  netsend(n, buff);
+  return netsend(n, buff);
 }
 
-void netsend(int n, char* str) {
+boolean netsend(int n, char* str) {
   //DEBUG_SERIAL.println("NSLL");
+  int tries = 10;
+  int i = 0;
   boolean ok = false;
   while (!ok) {
     while(waitData(50)) {
@@ -322,6 +324,14 @@ void netsend(int n, char* str) {
         skip();
       }
     }
+    if (i++ > tries) {
+      // ABORT
+      espStream->print("\r\nAT\r\n");
+      while(waitData(100)) {
+        readLine();
+      }
+      return false;
+    }
   }
   espStream->print(str);
   DEBUG_SERIAL.println(str);
@@ -329,6 +339,7 @@ void netsend(int n, char* str) {
   readLineLowLevel();
   waitData(100);
   readLine();
+  return true;
 }
 
 boolean sendPrep() {
