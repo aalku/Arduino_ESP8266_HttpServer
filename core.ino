@@ -282,14 +282,15 @@ int readLine() {
 }
 
 void netsend_P(int n, PGM_P str) {
-  DEBUG_SERIAL.println("NSP");
+  //DEBUG_SERIAL.println("NSP");
   char buff[BUFFER_SIZE+1];
-  strcpy_P(buff, str);
+  strncpy_P(buff, str, BUFFER_SIZE);
+  buff[BUFFER_SIZE]=0;
   netsend(n, buff);
 }
 
 void netsend(int n, char* str) {
-  DEBUG_SERIAL.println("NSLL");
+  //DEBUG_SERIAL.println("NSLL");
   boolean ok = false;
   while (!ok) {
     while(waitData(50)) {
@@ -390,4 +391,12 @@ boolean commandWaitCallback(char* command, long timeoutInitial, long timeoutAfte
   }
   DEBUG_SERIAL.println("COMMAND END");
 }
+
+boolean commandWaitCallback_P(PGM_P command, long timeoutInitial, long timeoutAfter, LineCallback callback, void* context) {
+  char buff[BUFFER_SIZE+1];
+  strncpy_P(buff, command, BUFFER_SIZE);
+  buff[BUFFER_SIZE]=0;
+  commandWaitCallback(buff, timeoutInitial, timeoutAfter, callback, context);
+}
+
 
