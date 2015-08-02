@@ -20,9 +20,9 @@ boolean debugPrevNoData = false;
 boolean unread = false;
 
 void setup() {
+  DEBUG_INIT();
   //softSerial.begin(9600);
   ESP_SERIAL.begin(9600);
-  DEBUG_SERIAL.begin(9600);
   espStream->print("AT\r\n");
   delay(500);
   espStream->print("AT+RST\r\n");
@@ -46,7 +46,7 @@ int readLineLowLevel() {
     }
   }
   unread=false;
-  //DEBUG_SERIAL.print("LL READ: {");
+  //DEBUG_PRINT("LL READ: {");
   // Read to in buffer
   int i = 0;
   while (true) {
@@ -56,8 +56,8 @@ int readLineLowLevel() {
     while(!espStream->available());
     char c = espStream->read();
     i++;
-    //DEBUG_SERIAL.print(c);
-    //DEBUG_SERIAL.print(c, HEX);
+    //DEBUG_PRINT(c);
+    //DEBUG_PRINT(c, HEX);
     if (inBufferLen < BUFFER_SIZE) {
       inBuffer[inBufferLen++] = c;
     } else {
@@ -67,24 +67,24 @@ int readLineLowLevel() {
       }
     }
   }
-  //DEBUG_SERIAL.println("}");
+  //DEBUG_PRINTLN("}");
   inBuffer[inBufferLen] = 0;
-  //DEBUG_SERIAL.print("RECV: {");
-  //DEBUG_SERIAL.print(inBuffer);
-  //DEBUG_SERIAL.println("}");
+  //DEBUG_PRINT("RECV: {");
+  //DEBUG_PRINT(inBuffer);
+  //DEBUG_PRINTLN("}");
   return i;
 }
 
 boolean ok = false;
 
 void skip() {
-  DEBUG_SERIAL.print("SKIP: {");
+  DEBUG_PRINT("SKIP: {");
   while (espStream->available()) {
     char c = espStream->read();
     delay(1);
-    DEBUG_SERIAL.print(c);
+    DEBUG_PRINT(c);
   }
-  DEBUG_SERIAL.println("}");
+  DEBUG_PRINTLN("}");
 }
 
 boolean waitData(long time) {
@@ -93,16 +93,16 @@ boolean waitData(long time) {
     delay(5);
   }
   boolean data = espStream->available();
-  //DEBUG_SERIAL.print(data?"WAIT -> DATA\r\n":debugPrevNoData?"":"WAIT -> NO DATA\r\n");
+  //DEBUG_PRINT(data?"WAIT -> DATA\r\n":debugPrevNoData?"":"WAIT -> NO DATA\r\n");
   debugPrevNoData = !data;
   return data;
 }
 
 boolean send(char* str) {
   espStream->print(str);
-  DEBUG_SERIAL.print("SENT: {");
-  DEBUG_SERIAL.print(str);
-  DEBUG_SERIAL.println("}");
+  DEBUG_PRINT("SENT: {");
+  DEBUG_PRINT(str);
+  DEBUG_PRINTLN("}");
 }
 
 boolean setupEsp() {
@@ -123,7 +123,7 @@ boolean okCmd(char* cmd) {
   readLine();
   readLine();
   boolean ok = (inBufferLen == 4 && memcmp(inBuffer, "OK\r\n", 4) == 0);
-  //DEBUG_SERIAL.println(ok?"OK":"NOT OK");
+  //DEBUG_PRINTLN(ok?"OK":"NOT OK");
   return ok;
 }
 
@@ -131,8 +131,8 @@ void processConnect() {
   int n = inBuffer[0] - '0';
   inDataBuffer[n][0]=0;
   inDataBufferLen[n]=0;
-  DEBUG_SERIAL.print("Connected ");
-  DEBUG_SERIAL.println(n);
+  DEBUG_PRINT("Connected ");
+  DEBUG_PRINTLN(n);
   open[n]=true;
   httpRequestRead[n] = false;
   userConnect(n);
@@ -140,8 +140,8 @@ void processConnect() {
 
 void processClosed() {
   int n = inBuffer[0] - '0';
-  DEBUG_SERIAL.print("Closed ");
-  DEBUG_SERIAL.println(n);
+  DEBUG_PRINT("Closed ");
+  DEBUG_PRINTLN(n);
   open[n]=false;
   inDataBuffer[n][0]=0;
   inDataBufferLen[n]=0;
@@ -152,14 +152,14 @@ void processIPDLine(int n) {
   /*
    * Do not respond unless inDataBuffer[n] equals "\r\n" (empty line)
    */
-  DEBUG_SERIAL.print("+IPD LINE: ");
-  DEBUG_SERIAL.print(n);
-  DEBUG_SERIAL.print(" : ");
+  DEBUG_PRINT("+IPD LINE: ");
+  DEBUG_PRINT(n);
+  DEBUG_PRINT(" : ");
   if (!open[n]) {
-    DEBUG_SERIAL.println("ERROR. NOT CONNECTED");
+    DEBUG_PRINTLN("ERROR. NOT CONNECTED");
     return;
   }
-  DEBUG_SERIAL.println(inDataBuffer[n]);
+  DEBUG_PRINTLN(inDataBuffer[n]);
   if (strcmp(inDataBuffer[n], "\r\n") != 0) {
     if (httpRequestRead[n] == false) {
       userHttpRequest(n, inDataBuffer[n]);
@@ -169,8 +169,8 @@ void processIPDLine(int n) {
     }
   } else {
     userHttpResponse(n);
-    DEBUG_SERIAL.print("AT+CIPCLOSE=");
-    DEBUG_SERIAL.println(n);
+    DEBUG_PRINT("AT+CIPCLOSE=");
+    DEBUG_PRINTLN(n);
     espStream->print("AT+CIPCLOSE=");
     espStream->print(n);
     espStream->print("\r\n");
@@ -182,8 +182,8 @@ void processIPD(int chars) {
    * FIXME: There is something broken here. When a line is too long it should crop it and continue but it does not continue correctly.
    */
   if (inBufferLen < 9) {
-    DEBUG_SERIAL.print("+IPD ERROR: ");
-    DEBUG_SERIAL.println(inBuffer);
+    DEBUG_PRINT("+IPD ERROR: ");
+    DEBUG_PRINTLN(inBuffer);
     return;
   }
   int n = inBuffer[5] - '0';
@@ -196,16 +196,16 @@ void processIPD(int chars) {
     }
     l = l * 10 + inBuffer[i] - '0';
   }
-  DEBUG_SERIAL.print("+IPD METADATA: n=");
-  DEBUG_SERIAL.print(n);
-  DEBUG_SERIAL.print(", l=");
-  DEBUG_SERIAL.println(l);
+  DEBUG_PRINT("+IPD METADATA: n=");
+  DEBUG_PRINT(n);
+  DEBUG_PRINT(", l=");
+  DEBUG_PRINTLN(l);
   if (j < 0) {
-    DEBUG_SERIAL.print("+IPD ERROR: ");
-    DEBUG_SERIAL.println(inBuffer);
+    DEBUG_PRINT("+IPD ERROR: ");
+    DEBUG_PRINTLN(inBuffer);
     return;
   }
-  DEBUG_SERIAL.print("+IPD LL: {{");
+  DEBUG_PRINT("+IPD LL: {{");
   int dp = inDataBufferLen[n];
   int pc = -1;
   int i = j;
@@ -215,15 +215,15 @@ void processIPD(int chars) {
   }
   while (t < l) {
     if (i > inBufferLen) { //i < IN_BUFFER_SIZE && 
-      DEBUG_SERIAL.print("+IPD ERROR: i (");
-      DEBUG_SERIAL.print(i);
-      DEBUG_SERIAL.print(") >= inBufferLen (");
-      DEBUG_SERIAL.print(inBufferLen);
-      DEBUG_SERIAL.println(")");
+      DEBUG_PRINT("+IPD ERROR: i (");
+      DEBUG_PRINT(i);
+      DEBUG_PRINT(") >= inBufferLen (");
+      DEBUG_PRINT(inBufferLen);
+      DEBUG_PRINTLN(")");
       return;
     }
     if (n >= l) {
-      DEBUG_SERIAL.println("+IPD ERROR: n >= l");
+      DEBUG_PRINTLN("+IPD ERROR: n >= l");
       return;
     }
     if (inBufferLen == 0) {
@@ -233,7 +233,7 @@ void processIPD(int chars) {
       }
     } else {
       char c = inBuffer[i];
-      DEBUG_SERIAL.print(c);
+      DEBUG_PRINT(c);
       if (dp < BUFFER_SIZE) {
         inDataBuffer[n][dp]=c;
         inDataBuffer[n][dp+1]=0;
@@ -259,7 +259,7 @@ void processIPD(int chars) {
       t++;
     }
   }
-  DEBUG_SERIAL.println("}}");
+  DEBUG_PRINTLN("}}");
 }
 
 int readLine() {
@@ -274,9 +274,9 @@ int readLine() {
     } else if (strstr(inBuffer, ",CLOSED") == &inBuffer[1]) {
       processClosed();
     } else {
-      DEBUG_SERIAL.print("ReadLine: {");
-      DEBUG_SERIAL.print(inBuffer);
-      DEBUG_SERIAL.println("}");
+      DEBUG_PRINT("ReadLine: {");
+      DEBUG_PRINT(inBuffer);
+      DEBUG_PRINTLN("}");
       ok = true;
     }
   }
@@ -284,7 +284,7 @@ int readLine() {
 }
 
 boolean netsend_P(int n, PGM_P str) {
-  //DEBUG_SERIAL.println("NSP");
+  //DEBUG_PRINTLN("NSP");
   char buff[BUFFER_SIZE+1];
   strncpy_P(buff, str, BUFFER_SIZE);
   buff[BUFFER_SIZE]=0;
@@ -292,7 +292,7 @@ boolean netsend_P(int n, PGM_P str) {
 }
 
 boolean netsend(int n, char* str) {
-  //DEBUG_SERIAL.println("NSLL");
+  //DEBUG_PRINTLN("NSLL");
   int tries = 10;
   int i = 0;
   boolean ok = false;
@@ -302,14 +302,14 @@ boolean netsend(int n, char* str) {
     }
     delay(10);
     espStream->print("AT+CIPSEND=");
-    DEBUG_SERIAL.print("AT+CIPSEND=");
+    DEBUG_PRINT("AT+CIPSEND=");
     espStream->print(n);
-    DEBUG_SERIAL.print(n);
+    DEBUG_PRINT(n);
     espStream->print(",");
-    DEBUG_SERIAL.print(",");
+    DEBUG_PRINT(",");
     int l = strlen(str);
     espStream->print(l);
-    DEBUG_SERIAL.println(l);
+    DEBUG_PRINTLN(l);
     espStream->print("\r\n");
     waitData(1000);
     readLineLowLevel();
@@ -334,7 +334,7 @@ boolean netsend(int n, char* str) {
     }
   }
   espStream->print(str);
-  DEBUG_SERIAL.println(str);
+  DEBUG_PRINTLN(str);
   waitData(1000);
   readLineLowLevel();
   waitData(100);
@@ -343,7 +343,7 @@ boolean netsend(int n, char* str) {
 }
 
 boolean sendPrep() {
-  DEBUG_SERIAL.print("SendPrep: ");
+  DEBUG_PRINT("SendPrep: ");
   inBufferLen = 0;
   if (!espStream->available()) {
     inBuffer[inBufferLen]=0;
@@ -352,17 +352,17 @@ boolean sendPrep() {
   unread=false;
   for (int i = 0; i < 2; i++) {
     char c = espStream->read();
-    DEBUG_SERIAL.print(c);
+    DEBUG_PRINT(c);
     if (inBufferLen < BUFFER_SIZE) {
       inBuffer[inBufferLen++] = c;
     }
     inBuffer[inBufferLen] = 0;
   }
   if (inBuffer[inBufferLen-2] == '>' /* && inBuffer[inBufferLen-1] == ' '*/) {
-    DEBUG_SERIAL.println("SendPrep OK");
+    DEBUG_PRINTLN("SendPrep OK");
     return true;
   } else {
-    DEBUG_SERIAL.println("UNREAD");
+    DEBUG_PRINTLN("UNREAD");
     unread = true;
     return false;
   }
@@ -370,12 +370,12 @@ boolean sendPrep() {
 
 void loop() {
   if (!ok) {
-    DEBUG_SERIAL.println("need init");
+    DEBUG_PRINTLN("need init");
     if (!setupEsp()) {
-      DEBUG_SERIAL.println("bad init!");
+      DEBUG_PRINTLN("bad init!");
       return;
     }
-    DEBUG_SERIAL.println("init ok");
+    DEBUG_PRINTLN("init ok");
     ok = true;
     ok |= okCmd("AT+CIPMUX=1\r\n");
     ok |= okCmd("AT+CIPSERVER=1,80\r\n");
@@ -395,14 +395,14 @@ boolean commandWaitCallback(char* command, long timeoutInitial, long timeoutAfte
   while(true) {
     if (waitData(timeoutAfter)) {
       readLine();
-      DEBUG_SERIAL.print("COMMAND RESPONSE: ");
-      DEBUG_SERIAL.println(inBuffer);
+      DEBUG_PRINT("COMMAND RESPONSE: ");
+      DEBUG_PRINTLN(inBuffer);
       callback(inBuffer, context);
     } else {
       break;
     }
   }
-  DEBUG_SERIAL.println("COMMAND END");
+  DEBUG_PRINTLN("COMMAND END");
 }
 
 boolean commandWaitCallback_P(PGM_P command, long timeoutInitial, long timeoutAfter, LineCallback callback, void* context) {

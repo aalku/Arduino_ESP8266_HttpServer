@@ -66,8 +66,8 @@ void userHttpRequest(int n, char* line) {
       buff[i] = 0;
     }
     // TODO req[n] = idReq(buff);
-    DEBUG_SERIAL.print("REQ: ");
-    DEBUG_SERIAL.println(buff);
+    DEBUG_PRINT("REQ: ");
+    DEBUG_PRINTLN(buff);
     if (strncmp(buff, "/", BUFFER_SIZE)==0) {
       req[n] = 1;
     } else if (strncmp_P(buff, PSTR("/wifi"), BUFFER_SIZE)==0) {
@@ -84,8 +84,8 @@ void userHttpHeader(int n, char* line) {
 }
 
 void callbackCWLAP(char* line, void* context) {
-  //DEBUG_SERIAL.print("AT+CWLAP RESPONSE: ");
-  //DEBUG_SERIAL.println(line);
+  //DEBUG_PRINT("AT+CWLAP RESPONSE: ");
+  //DEBUG_PRINTLN(line);
   char* buff = (char*)context;
   int k = strlen(buff);
   int l = strlen(line);
@@ -93,12 +93,12 @@ void callbackCWLAP(char* line, void* context) {
     int i;
     for (i = 8;; i++) {
       if (i == l) {
-        DEBUG_SERIAL.println("CWLAP ERROR 1");
+        DEBUG_PRINTLN("CWLAP ERROR 1");
         return;
       }
       if (line[i]=='"') {
-        //DEBUG_SERIAL.println("CWLAP \" at");
-        //DEBUG_SERIAL.println(i);
+        //DEBUG_PRINTLN("CWLAP \" at");
+        //DEBUG_PRINTLN(i);
         if (k > 0) {
           buff[k++] = '\t';
         }
@@ -107,19 +107,19 @@ void callbackCWLAP(char* line, void* context) {
     }
     for (i++;; i++) {
       if (i == l) {
-        DEBUG_SERIAL.println("CWLAP ERROR 2");
+        DEBUG_PRINTLN("CWLAP ERROR 2");
         return;
       }
       if (line[i]=='"') {
-        //DEBUG_SERIAL.println("CWLAP \" at");
-        //DEBUG_SERIAL.println(i);
+        //DEBUG_PRINTLN("CWLAP \" at");
+        //DEBUG_PRINTLN(i);
         buff[k] = 0;
         break;
       } else {
         if (k < CWLAP_MAX_LEN - 1) {
           buff[k++] = line[i];
-          //DEBUG_SERIAL.println("CWLAP char at");
-          //DEBUG_SERIAL.println(i);
+          //DEBUG_PRINTLN("CWLAP char at");
+          //DEBUG_PRINTLN(i);
         }
       }
     }
