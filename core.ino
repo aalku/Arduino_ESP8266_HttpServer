@@ -297,10 +297,10 @@ boolean netsend(int n, char* str) {
   int i = 0;
   boolean ok = false;
   while (!ok) {
-    while(waitData(50)) {
+    while(waitData(10)) {
       readLine();
     }
-    delay(50);
+    delay(10);
     espStream->print("AT+CIPSEND=");
     DEBUG_SERIAL.print("AT+CIPSEND=");
     espStream->print(n);
@@ -317,7 +317,7 @@ boolean netsend(int n, char* str) {
     if (ok) {
       waitData(200);
       readLineLowLevel();
-      waitData(200);
+      waitData(100);
       if (true) {
         ok = sendPrep();
       } else {
