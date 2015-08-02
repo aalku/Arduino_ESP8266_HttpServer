@@ -143,6 +143,8 @@ void processClosed() {
   DEBUG_SERIAL.print("Closed ");
   DEBUG_SERIAL.println(n);
   open[n]=false;
+  inDataBuffer[n][0]=0;
+  inDataBufferLen[n]=0;
   userClosed(n);
 }
 
