@@ -133,7 +133,7 @@ void userHttpResponse(int n) {
     //netsend(n, buff);
   } else if (req[n] == 2) {
     char wifilist[CWLAP_MAX_LEN] = "";
-    commandWaitCallback("AT+CWLAP\r\n", 10000, 1000, &callbackCWLAP, (void*)wifilist);
+    commandWaitCallback_P(PSTR("AT+CWLAP\r\n"), 10000, 1000, &callbackCWLAP, (void*)wifilist);
     while(waitData(100)) {
       readLine();
     }
@@ -153,7 +153,10 @@ void userHttpResponse(int n) {
       netsend(n, buff);
       token = strtok(NULL, "\t");
     }
-    netsend_P(n, PSTR("</ul>"));
+    netsend_P(n, PSTR("</ul><form method='GET'><label>Connect to network:</label>"));
+    netsend_P(n, PSTR("<input type='text' placeholder='network' name='n'/>"));
+    netsend_P(n, PSTR("<input type='text' placeholder='password' name='p'/>"));
+    netsend_P(n, PSTR("<input type='submit' value='Connect/Disconnect'/></form>"));
     netsend_P(n, HTML_PART_C);
   } else {
     netsend_P(n, STATUS_404);
