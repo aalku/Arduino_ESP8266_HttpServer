@@ -19,6 +19,10 @@ boolean debugPrevNoData = false;
 
 boolean unread = false;
 
+boolean debugEnabled;
+
+long debugEnabledLastTimeChecked;
+
 void setup() {
   DEBUG_INIT();
   //softSerial.begin(9600);
@@ -369,6 +373,9 @@ boolean sendPrep() {
 }
 
 void loop() {
+  while (Serial.available()) {
+    Serial.read();
+  }
   if (!ok) {
     DEBUG_PRINTLN("need init");
     if (!setupEsp()) {
